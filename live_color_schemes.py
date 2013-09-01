@@ -127,7 +127,8 @@ class LiveColorSchemes(LiveView):
                 "line_padding_top": 5,
                 "line_padding_bottom": 5
             },
-            read_only=True
+            read_only=True,
+            scratch=True
         )
 
 
