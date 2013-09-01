@@ -1,0 +1,6 @@
+[submodule "sublime_live"]
+	path = sublime_live
+	url = https://github.com/sligodave/sublime_live.git
+[submodule "sublime_utils"]
+	path = sublime_utils
+	url = https://github.com/sligodave/sublime_utils.git
