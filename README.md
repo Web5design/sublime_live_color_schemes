@@ -10,9 +10,9 @@ You'll need Sublime Text 3
 
 Clone this repository into your Sublime Text *Packages* directory.
 
-	OSX:
-	    ~/Library/Application Support/Sublime Text 3
-	Linux:
+    OSX:
+        ~/Library/Application Support/Sublime Text 3
+    Linux:
         ~/.config/sublime-text-3/Packages
     Windows:
         %APPDATA%\Sublime Text 3\Packages
@@ -26,8 +26,14 @@ Open Sublime Text 3
 
 Open Sublime Text 3's Python Prompt and run the todo load command:
 
-	CTRL + `
-	Type: window.run_command('live_color_schemes')
+    CTRL + `
+    Type: window.run_command('live_color_schemes')
+
+**NOTE**
+
+    When you click on an available color scheme, the live view won't change but all others will.
+    So select a color scheme and look at some of your other open files.
+    Alternatively, have other files open along side the live view in another group to see it change as you make your selections.
 
 You can of course also create a key mapping to load the live color schemes page.
 
