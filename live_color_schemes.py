@@ -37,14 +37,68 @@ class LiveColorSchemes(LiveView):
     def __init__(self):
         super().__init__(name='Live Color Scheme')
 
+        window = self.window()
+
+        user_prefs_path = os.path.join(
+                                sublime.packages_path(), 'User', 'Preferences.sublime-settings')
+
+        # Get original scheme
+        orig_color_scheme = self.settings().get('color_scheme', None)
+
+        self.orig_layout = window.get_layout()
+        self.active_view = window.active_view()
+        self.active_views = []
+        self.views_in_groups = []
+        for group in range(window.num_groups()):
+            self.views_in_groups.append(window.views_in_group(group))
+            self.active_views.append(window.active_view_in_group(group))
+
+        window.set_layout({
+            "cols": [0.0, 1.0],
+            "rows": [0.0, 1.0],
+            "cells": [[0, 0, 1, 1]]
+            })
+
+        window.set_layout({
+            "cols": [0.0, 0.5, 1.0],
+            "rows": [0.0, 1.0],
+            "cells": [[0, 0, 1, 1], [1, 0, 2, 1]]
+            })
+
+        window.run_command('move_to_group', args={'group': 1})
+
         color_schemes = []
+
+        self.run_command('update_live_view', {'data': '\n Close and Restore Layout   Restore Color Scheme \n\n'})
+        def process(live_region):
+            live_view = live_region.live_view
+            window = live_view.window()
+            window.set_layout(live_view.orig_layout)
+            for g, views in enumerate(live_view.views_in_groups):
+                for view in views:
+                    window.focus_view(view)
+                    window.run_command('move_to_group', args={'group': g})
+                window.focus_view(live_view.active_views[g])
+            window.focus_view(live_view.active_view)
+            window.run_command('close')
+        live_region = LiveRegion(1, 27, process=process)
+        self.add_regions('restore_layout', [live_region], scope='button', flags=sublime.DRAW_NO_OUTLINE)
+
+        def process(live_region):
+            if orig_color_scheme:
+                with open(user_prefs_path, 'r') as user_prefs_file:
+                    user_prefs = json.load(user_prefs_file)
+                user_prefs['color_scheme'] = orig_color_scheme
+                with open(user_prefs_path, 'w') as user_prefs_file:
+                    json.dump(user_prefs, user_prefs_file, indent='\t')
+
+        live_region = LiveRegion(28, 50, process=process)
+        self.add_regions('restore_color_scheme', [live_region], scope='button', flags=sublime.DRAW_NO_OUTLINE)
 
         self.run_command('update_live_view', {'data': '%s\n' % (' ' * 85), 'start': self.size()})
         self.add_regions('horizontal_rule', [sublime.Region(self.size() - 86, self.size() - 1)],
                                             scope='horizontal_rule', flags=sublime.DRAW_NO_OUTLINE)
 
-        user_prefs_path = os.path.join(
-                                sublime.packages_path(), 'User', 'Preferences.sublime-settings')
         packages = find_all_packages(contents=True, extensions='.tmTheme')
         for package_name, package in packages.items():
             for file_name in package['files']:
