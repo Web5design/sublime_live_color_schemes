@@ -35,7 +35,16 @@ base_color = """<dict><key>name</key><string>%s</string><key>scope</key>
 
 class LiveColorSchemes(LiveView):
     def __init__(self):
-        super().__init__(name='Live Color Scheme')
+        window = sublime.active_window()
+        self.active_view = window.active_view()
+        self.orig_layout = window.get_layout()
+        self.active_views = []
+        self.views_in_groups = []
+        for group in range(window.num_groups()):
+            self.views_in_groups.append(window.views_in_group(group))
+            self.active_views.append(window.active_view_in_group(group))
+
+        super().__init__(name='Live Color Scheme', window=window)
 
         window = self.window()
 
@@ -45,14 +54,6 @@ class LiveColorSchemes(LiveView):
         # Get original scheme
         orig_color_scheme = self.settings().get('color_scheme', None)
 
-        self.orig_layout = window.get_layout()
-        self.active_view = window.active_view()
-        self.active_views = []
-        self.views_in_groups = []
-        for group in range(window.num_groups()):
-            self.views_in_groups.append(window.views_in_group(group))
-            self.active_views.append(window.active_view_in_group(group))
-
         window.set_layout({
             "cols": [0.0, 1.0],
             "rows": [0.0, 1.0],
@@ -60,7 +61,7 @@ class LiveColorSchemes(LiveView):
             })
 
         window.set_layout({
-            "cols": [0.0, 0.5, 1.0],
+            "cols": [0.0, 0.8, 1.0],
             "rows": [0.0, 1.0],
             "cells": [[0, 0, 1, 1], [1, 0, 2, 1]]
             })
@@ -69,11 +70,11 @@ class LiveColorSchemes(LiveView):
 
         color_schemes = []
 
-        self.run_command('update_live_view', {'data': '\n Close and Restore Layout   Restore Color Scheme \n\n'})
+        self.run_command('update_live_view', {'data': '\n Close and Restore Layout \n Restore Color Scheme \n\n'})
         def process(live_region):
             live_region.live_view.window().run_command('live_color_schemes_close')
         live_region = LiveRegion(1, 27, process=process)
-        self.add_regions('restore_layout', [live_region], scope='button', flags=sublime.DRAW_NO_OUTLINE)
+        self.add_regions('restore_layout', [live_region], scope='button', flags=sublime.DRAW_OUTLINED)
 
         def process(live_region):
             if orig_color_scheme:
@@ -84,11 +85,7 @@ class LiveColorSchemes(LiveView):
                     json.dump(user_prefs, user_prefs_file, indent='\t')
 
         live_region = LiveRegion(28, 50, process=process)
-        self.add_regions('restore_color_scheme', [live_region], scope='button', flags=sublime.DRAW_NO_OUTLINE)
-
-        self.run_command('update_live_view', {'data': '%s\n' % (' ' * 85), 'start': self.size()})
-        self.add_regions('horizontal_rule', [sublime.Region(self.size() - 86, self.size() - 1)],
-                                            scope='horizontal_rule', flags=sublime.DRAW_NO_OUTLINE)
+        self.add_regions('restore_color_scheme', [live_region], scope='button', flags=sublime.DRAW_OUTLINED)
 
         packages = find_all_packages(contents=True, extensions='.tmTheme')
         for package_name, package in packages.items():
@@ -138,26 +135,14 @@ class LiveColorSchemes(LiveView):
                 process = process(package_name, file_name)
 
                 for text in ['Package : ' + package_name, 'Scheme  : ' + file_name[:-8]]:
-                    text = '   %s%s\n' % (text, ' ' * (82 - len(text)))
+                    text = ' %s \n' % (text)
                     self.run_command('update_live_view', {'data': text, 'start': self.size()})
                     live_region = LiveRegion(
-                                    self.size() + 2 - len(text), self.size() - 3, process=process)
-                    regions = self.get_regions('horizontal_rule')
-                    regions.extend(
-                        [
-                            sublime.Region(self.size() - 86, self.size() - 84),
-                            sublime.Region(self.size() - 3, self.size() - 1)
-                        ]
-                    )
-                    self.add_regions('horizontal_rule', regions, scope='horizontal_rule',
-                                                                    flags=sublime.DRAW_NO_OUTLINE)
+                                    self.size() - len(text), self.size() - 1, process=process)
                     self.add_regions(text.strip(), [live_region], scope=scope, flags=flags)
-                self.run_command('update_live_view',
-                                            {'data': '%s\n' % (' ' * 85), 'start': self.size()})
-                regions = self.get_regions('horizontal_rule')
-                regions.append(sublime.Region(self.size() - 86, self.size() - 1))
-                self.add_regions('horizontal_rule', regions, scope='horizontal_rule',
-                                                                    flags=sublime.DRAW_NO_OUTLINE)
+                    if text.startswith(' Scheme'):
+                        self.run_command('update_live_view',
+                                            {'data': '%s\n' % ('-' * (len(text) - 1)), 'start': self.size()})
 
         color_scheme = base_tmTheme % ''.join(color_schemes)
         color_scheme_path = os.path.join(sublime.packages_path(), 'User',
@@ -191,9 +176,9 @@ class LiveColorSchemesCloseCommand(sublime_plugin.WindowCommand):
                         window.focus_view(view)
                         window.run_command('move_to_group', args={'group': g})
                     window.focus_view(live_view.active_views[g])
-                window.focus_view(live_view.active_view)
                 window.focus_view(live_view)
                 window.run_command('close')
+                window.focus_view(live_view.active_view)
                 del_live_view(live_view)
                 break
 
