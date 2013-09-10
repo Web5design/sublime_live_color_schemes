@@ -1,4 +1,4 @@
 [
 	// Open the Live Color Scheme view.
-	{ "keys": ["ctrl+alt+c"], "command": "live_color_schemes" },
+	{ "keys": ["ctrl+alt+c"], "command": "live_color_schemes_toggle" },
 ]

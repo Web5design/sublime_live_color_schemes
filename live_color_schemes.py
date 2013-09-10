@@ -7,7 +7,7 @@ import sublime
 import sublime_plugin
 
 from .sublime_live import UpdateLiveViewCommand, LiveEventListener
-from .sublime_live import LiveView, LiveRegion
+from .sublime_live import LiveView, LiveRegion, del_live_view, LIVE_VIEWS
 from .sublime_utils import find_all_packages
 
 
@@ -71,16 +71,7 @@ class LiveColorSchemes(LiveView):
 
         self.run_command('update_live_view', {'data': '\n Close and Restore Layout   Restore Color Scheme \n\n'})
         def process(live_region):
-            live_view = live_region.live_view
-            window = live_view.window()
-            window.set_layout(live_view.orig_layout)
-            for g, views in enumerate(live_view.views_in_groups):
-                for view in views:
-                    window.focus_view(view)
-                    window.run_command('move_to_group', args={'group': g})
-                window.focus_view(live_view.active_views[g])
-            window.focus_view(live_view.active_view)
-            window.run_command('close')
+            live_region.live_view.window().run_command('live_color_schemes_close')
         live_region = LiveRegion(1, 27, process=process)
         self.add_regions('restore_layout', [live_region], scope='button', flags=sublime.DRAW_NO_OUTLINE)
 
@@ -186,9 +177,49 @@ class LiveColorSchemes(LiveView):
         )
 
 
-class LiveColorSchemesCommand(sublime_plugin.WindowCommand):
+class LiveColorSchemesCloseCommand(sublime_plugin.WindowCommand):
     """
-    window.run_command('live_color_schemes')
+    window.run_command('live_color_schemes_close')
     """
     def run(self):
-        LiveColorSchemes()
+        for view_id, live_view in LIVE_VIEWS.items():
+            if isinstance(live_view, LiveColorSchemes):
+                window = live_view.window()
+                window.set_layout(live_view.orig_layout)
+                for g, views in enumerate(live_view.views_in_groups):
+                    for view in views:
+                        window.focus_view(view)
+                        window.run_command('move_to_group', args={'group': g})
+                    window.focus_view(live_view.active_views[g])
+                window.focus_view(live_view.active_view)
+                window.focus_view(live_view)
+                window.run_command('close')
+                del_live_view(live_view)
+                break
+
+
+class LiveColorSchemesOpenCommand(sublime_plugin.WindowCommand):
+    """
+    window.run_command('live_color_schemes_open')
+    """
+    def run(self):
+        for view_id, live_view in LIVE_VIEWS.items():
+            if isinstance(live_view, LiveColorSchemes):
+                self.window.focus_view(live_view)
+                break
+        else:
+            LiveColorSchemes()
+
+
+class LiveColorSchemesToggleCommand(sublime_plugin.WindowCommand):
+    """
+    window.run_command('live_color_schemes_toggle')
+    """
+    def run(self):
+        for view_id, live_view in LIVE_VIEWS.items():
+            if isinstance(live_view, LiveColorSchemes):
+                self.window.focus_view(live_view)
+                self.window.run_command('live_color_schemes_close')
+                break
+        else:
+            LiveColorSchemes()
